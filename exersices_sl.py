@@ -1,15 +1,23 @@
 import streamlit as st
 import pandas as pd
-import random
+import requests
+from io import BytesIO
+
 
 # Φόρτωση του Excel αρχείου
 FILE_PATH = "https://github.com/agtitis/NetworkExercises/raw/refs/heads/main/askiseis.xlsx"
 @st.cache_data
 def load_data():
-    return pd.read_excel(FILE_PATH)
+    response = requests.get(FILE_PATH)
+    if response.status_code != 200:
+        st.error("Αποτυχία φόρτωσης του αρχείου!")
+        return None
+    return pd.read_excel(BytesIO(response.content), engine="openpyxl")
 
 df = load_data()
-
+if df is None:
+    st.stop()
+    
 # Streamlit app
 st.title("Εξασκητής Υποδικτύωσης")
 
