@@ -47,6 +47,7 @@ st.markdown(
     .stTextArea>div>div>input {{
         background-color: #E0F2F1; /* Very Light Teal */
         color: #004D40; /* Dark Teal */
+        font-size: 16px;
     }}
     </style>
     """,
