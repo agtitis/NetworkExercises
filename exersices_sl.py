@@ -21,7 +21,7 @@ if df is None:
 # Streamlit app
 
 # URL εικόνας από το GitHub (αντικατέστησε το με το πραγματικό URL)
-background_url = "https://github.com/agtitis/NetworkExercises/blob/5a15a213f47eb4227ac8c34c3909833c98d83d7e/logo.png" 
+background_url = "https://github.com/agtitis/NetworkExercises/raw/refs/heads/main/logo.jpg" 
 
 st.markdown(
     f"""
