@@ -19,7 +19,41 @@ if df is None:
     st.stop()
     
 # Streamlit app
-st.title("Εξασκητής Υποδικτύωσης")
+
+# URL εικόνας από το GitHub (αντικατέστησε το με το πραγματικό URL)
+background_url = "logo.png"
+
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background: url("{background_url}") no-repeat center center fixed;
+        background-size: cover;
+    }}
+    .stButton>button {{
+        background-color: #00897B; /* Teal (Material Design) */
+        color: white;
+        border-radius: 8px;
+        border: none;
+        padding: 10px 20px;
+        font-size: 16px;
+    }}
+    .stSelectbox>div {{
+        background-color: #26A69A; /* Light Teal */
+        color: white;
+        border-radius: 8px;
+        padding: 5px;
+    }}
+    .stTextArea>div>div>input {{
+        background-color: #E0F2F1; /* Very Light Teal */
+        color: #004D40; /* Dark Teal */
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.title("Ασκήσεις δικτύων")
 
 # Επιλογή κατηγορίας άσκησης
 category = st.selectbox("Επιλέξτε κατηγορία", df["Κατηγορία άσκησης"].unique(), index=0)
