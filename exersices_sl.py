@@ -63,10 +63,10 @@ category = st.selectbox("Επιλέξτε κατηγορία", df["Κατηγο�
 filtered_df = df[df["Κατηγορία άσκησης"] == category]
 
 # Drop-down για επιλογή άσκησης με βάση τον ΑΑ
-exercise_id = st.selectbox("Επιλέξτε Άσκηση", filtered_df["Αύξων αριθμός άσκησης"].tolist())
+exercise_id = st.selectbox("Επιλέξτε Άσκηση", filtered_df["Περιγραφή άσκησης"].tolist())
 
 # Επιλογή της άσκησης
-exercise = filtered_df[filtered_df["Αύξων αριθμός άσκησης"] == exercise_id].iloc[0]
+exercise = filtered_df[filtered_df["Περιγραφή άσκησης"] == exercise_id].iloc[0]
 
 st.subheader("Άσκηση")
 st.text_area("", exercise["Κείμενο άσκησης"], height=150, disabled=True)
