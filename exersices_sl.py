@@ -49,6 +49,13 @@ st.markdown(
         color: #004D40; /* Dark Teal */
         font-size: 16px;
     }}
+    .styled-box {
+        border: 2px solid #90A4AE;  /* Blue Grey από την Google */
+        border-radius: 10px;
+        padding: 10px;
+        background-color: #ECEFF1;  /* Ανοιχτό γκρι */
+        font-size: 16px;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -69,7 +76,8 @@ exercise_id = st.selectbox("Επιλέξτε Άσκηση", filtered_df["Περ�
 exercise = filtered_df[filtered_df["Περιγραφή άσκησης"] == exercise_id].iloc[0]
 
 st.subheader("Άσκηση")
-st.text_area("", exercise["Κείμενο άσκησης"], height=150, disabled=True)
+st.markdown(f'<div class="styled-box"><b>{exercise["Κείμενο άσκησης"]}</b></div>', unsafe_allow_html=True)
+#st.text_area("", exercise["Κείμενο άσκησης"], height=150, disabled=True)
 
 # Πεδίο εισαγωγής απάντησης
 user_answer = st.text_area("Γράψτε την απάντησή σας:", height=150)
@@ -77,6 +85,7 @@ user_answer = st.text_area("Γράψτε την απάντησή σας:", heigh
 # Κουμπί για εμφάνιση λύσης
 if st.button("Εμφάνιση λύσης"):
     st.subheader("Λύση")
-    st.text_area("", exercise["Λύση άσκησης"], height=150, disabled=True)
+    st.markdown(f'<div class="styled-box"><b>{exercise["Λύση άσκησης"]}</b></div>', unsafe_allow_html=True)
+    #st.text_area("", exercise["Λύση άσκησης"], height=150, disabled=True)
 
 st.write("\n**Οδηγίες:** Επιλέξτε κατηγορία, διαλέξτε άσκηση και γράψτε την απάντησή σας. Πατήστε 'Εμφάνιση λύσης' για έλεγχο!")
