@@ -83,7 +83,7 @@ user_answer = st.text_area("Γράψτε την απάντησή σας:", heigh
 # Κουμπί για εμφάνιση λύσης
 if st.button("Εμφάνιση λύσης"):
     st.subheader("Λύση")
-    st.markdown(f'<div class="styled-box"><b>{exercise["Λύση άσκησης"]}</b></div>', unsafe_allow_html=True)
+    st.markdown(exercise["Λύση άσκησης"], unsafe_allow_html=True)
     # st.text_area("", exercise["Λύση άσκησης"], height=150, disabled=True)
 
 st.write("\n**Οδηγίες:** Επιλέξτε κατηγορία, διαλέξτε άσκηση και γράψτε την απάντησή σας. Πατήστε 'Εμφάνιση λύσης' για έλεγχο!")
