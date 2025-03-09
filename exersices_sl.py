@@ -74,8 +74,8 @@ exercise_id = st.selectbox("Επιλέξτε Άσκηση", filtered_df["Περ�
 exercise = filtered_df[filtered_df["Περιγραφή άσκησης"] == exercise_id].iloc[0]
 
 st.subheader("Άσκηση")
-st.markdown(f'<div class="styled-box"><b>{exercise["Κείμενο άσκησης"]}</b></div>', unsafe_allow_html=True)
-#st.text_area("", exercise["Κείμενο άσκησης"], height=150, disabled=True)
+# st.markdown(f'<div class="styled-box"><b>{exercise["Κείμενο άσκησης"]}</b></div>', unsafe_allow_html=True)
+st.text_area("", exercise["Κείμενο άσκησης"], height=150, disabled=True)
 
 # Πεδίο εισαγωγής απάντησης
 user_answer = st.text_area("Γράψτε την απάντησή σας:", height=150)
@@ -84,6 +84,6 @@ user_answer = st.text_area("Γράψτε την απάντησή σας:", heigh
 if st.button("Εμφάνιση λύσης"):
     st.subheader("Λύση")
     st.markdown(f'<div class="styled-box"><b>{exercise["Λύση άσκησης"]}</b></div>', unsafe_allow_html=True)
-    #st.text_area("", exercise["Λύση άσκησης"], height=150, disabled=True)
+    # st.text_area("", exercise["Λύση άσκησης"], height=150, disabled=True)
 
 st.write("\n**Οδηγίες:** Επιλέξτε κατηγορία, διαλέξτε άσκηση και γράψτε την απάντησή σας. Πατήστε 'Εμφάνιση λύσης' για έλεγχο!")
