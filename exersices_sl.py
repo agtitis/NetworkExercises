@@ -49,13 +49,13 @@ st.markdown(
         color: #004D40; /* Dark Teal */
         font-size: 16px;
     }}
-    .styled-box {
+    .styled-box {{
         border: 2px solid #90A4AE;  /* Blue Grey από την Google */
         border-radius: 10px;
         padding: 10px;
         background-color: #ECEFF1;  /* Ανοιχτό γκρι */
         font-size: 16px;
-    }
+    }}
     </style>
     """,
     unsafe_allow_html=True
