@@ -50,10 +50,8 @@ st.markdown(
         font-size: 16px;
     }}
     .styled-box {{
-        border: 2px solid #90A4AE;  /* Blue Grey από την Google */
-        border-radius: 10px;
-        padding: 10px;
-        background-color: #ECEFF1;  /* Ανοιχτό γκρι */
+        background-color: #E0F2F1; /* Very Light Teal */
+        color: #004D40; /* Dark Teal */
         font-size: 16px;
     }}
     </style>
