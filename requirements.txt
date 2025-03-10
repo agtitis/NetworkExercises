@@ -1,4 +1,4 @@
 streamlit
-firebase_admin
-json
-random
+firebase-admin
+pandas
+openpyxl
