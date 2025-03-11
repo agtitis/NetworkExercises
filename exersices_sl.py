@@ -12,10 +12,10 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
+        'Report a bug': "mailto:agtitis@gmail.com",
         'About': "Μία **cool** εφαρμογή για την εξάσκηση στις ασκήσεις δικτύων (*Beta*)!"
     }
 )
-
 
 # 🔥 Σύνδεση με Firestore
 key_dict = json.loads(st.secrets["FIREBASE_KEY"])
@@ -66,38 +66,42 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔥 Layout με columns
-st.title("📡 Ασκήσεις Δικτύων")
-
-###
 # 🔥 Αν δεν υπάρχουν τιμές στο session_state, αρχικοποίησέ τις
 if "selected_category" not in st.session_state:
     st.session_state.selected_category = None
 
 if "selected_exercise" not in st.session_state:
     st.session_state.selected_exercise = None
-###
 
+st.title("📡 Ασκήσεις Δικτύων")
 
 col1, col2 = st.columns([2, 1])
-# 🔥 Επιλογή Κατηγορίας (col1)
-with col1:
 
-    #######
+with col1:
     # 🔥 Επιλογή Κατηγορίας
     categories = list(set(ex["Κατηγορία άσκησης"] for ex in exercises))
+
+    # Αν ο χρήστης αλλάξει κατηγορία, επαναφέρουμε την επιλεγμένη άσκηση
+    previous_category = st.session_state.selected_category
+
     selected_category = st.selectbox("📂 Επιλέξτε Κατηγορία", categories,
-                                     index=categories.index(
-                                         st.session_state.selected_category) if st.session_state.selected_category else 0)
+                                     index=categories.index(st.session_state.selected_category) if st.session_state.selected_category else 0)
+
+    if selected_category != previous_category:
+        st.session_state.selected_exercise = None  # Reset της άσκησης όταν αλλάζει κατηγορία
 
     # 🔥 Φιλτράρισμα Ασκήσεων ανά κατηγορία
     filtered_exercises = [ex for ex in exercises if ex["Κατηγορία άσκησης"] == selected_category]
 
-    # 🔥 Επιλογή Άσκησης
+    # 🔥 Επιλογή Άσκησης με έλεγχο ύπαρξης
     exercise_titles = [ex["Περιγραφή άσκησης"] for ex in filtered_exercises]
+
+    # Αν η επιλεγμένη άσκηση δεν υπάρχει στη νέα κατηγορία, επιλέγουμε την πρώτη
+    if st.session_state.selected_exercise not in exercise_titles:
+        st.session_state.selected_exercise = exercise_titles[0] if exercise_titles else None
+
     selected_exercise = st.selectbox("📜 Επιλέξτε Άσκηση", exercise_titles,
-                                     index=exercise_titles.index(
-                                         st.session_state.selected_exercise) if st.session_state.selected_exercise else 0)
+                                     index=exercise_titles.index(st.session_state.selected_exercise) if st.session_state.selected_exercise else 0)
 
     # 🔥 Random Επιλογή Άσκησης (ενημερώνει τα selectbox)
     if st.button("🎲 Τυχαία Άσκηση"):
@@ -106,23 +110,23 @@ with col1:
         st.session_state.selected_exercise = random_exercise["Περιγραφή άσκησης"]
         st.rerun()  # 🔄 Κάνει refresh την εφαρμογή για ενημέρωση των επιλογών
 
-# 🔥 Προβολή Επιλεγμένης Άσκησης (col2)
 with col2:
     st.image("https://github.com/agtitis/NetworkExercises/raw/refs/heads/main/logo.png", use_container_width=True)
 
-######
-
 # 🔥 Ανάκτηση Επιλεγμένης Άσκησης
-exercise = next(ex for ex in filtered_exercises if ex["Περιγραφή άσκησης"] == selected_exercise)
+exercise = next((ex for ex in filtered_exercises if ex["Περιγραφή άσκησης"] == selected_exercise), None)
 
-st.subheader("📌 Άσκηση")
-st.markdown(f'<div class="styled-box"><b>{exercise["Κείμενο άσκησης"]}</b></div>', unsafe_allow_html=True)
+if exercise:
+    st.subheader("📌 Άσκηση")
+    st.markdown(f'<div class="styled-box"><b>{exercise["Κείμενο άσκησης"]}</b></div>', unsafe_allow_html=True)
 
-# 🔥 Πεδίο απάντησης
-user_answer = st.text_area("✍️ Γράψτε την απάντησή σας:", height=150)
+    # 🔥 Πεδίο απάντησης
+    user_answer = st.text_area("✍️ Γράψτε την απάντησή σας:", height=150)
 
-# 🔥 Εμφάνιση Λύσης με Expander
-with st.expander("🛠 Δείτε τη Λύση"):
-    st.markdown(exercise["Λύση άσκησης"], unsafe_allow_html=True)
+    # 🔥 Εμφάνιση Λύσης με Expander
+    with st.expander("🛠 Δείτε τη Λύση"):
+        st.markdown(exercise["Λύση άσκησης"], unsafe_allow_html=True)
 
-st.write("🔹 **Οδηγίες:** Επιλέξτε κατηγορία, διαλέξτε άσκηση ή πατήστε 'Τυχαία Άσκηση'. Γράψτε την απάντησή σας και ανοίξτε τη λύση για έλεγχο!")
+    st.write("🔹 **Οδηγίες:** Επιλέξτε κατηγορία, διαλέξτε άσκηση ή πατήστε 'Τυχαία Άσκηση'. Γράψτε την απάντησή σας και ανοίξτε τη λύση για έλεγχο!")
+else:
+    st.warning("❗ Δεν υπάρχουν ασκήσεις σε αυτή την κατηγορία.")
