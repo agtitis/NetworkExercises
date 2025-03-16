@@ -1,3 +1,4 @@
+import streamlit
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -7,7 +8,7 @@ import pandas as pd
 
 import google.generativeai as genai
 
-# set page
+# 🔥 Μενού σελίδας
 st.set_page_config(
     page_title="Ασκήσεις δικτύων App",
     page_icon="🧊",
@@ -19,13 +20,20 @@ st.set_page_config(
     }
 )
 
+st.markdown("""
+    <style>
+        [data-testid=stSidebar] {
+            background-color: teal;
+            width: 500px; # Set the width to your desired value
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
 # 🔥 Σύνδεση με Firestore
 key_dict = json.loads(st.secrets["FIREBASE_KEY"])
 cred = credentials.Certificate(key_dict)
-
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
-
 db = firestore.client()
 
 
@@ -43,110 +51,140 @@ if exercises is None:
     st.error("❌ Δεν βρέθηκαν ασκήσεις στη βάση δεδομένων!")
     st.stop()
 
+categories = list(set(ex["Κατηγορία άσκησης"] for ex in exercises))
+
 # 🔥 Αρχικοποίηση GEMINI API
 gemini_api_key = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=gemini_api_key)
 
-# 🔥 Αν δεν υπάρχουν τιμές στο session_state, αρχικοποίησέ τις
+
+# Συνάρτηση που διαγράφει την απάντηση και επαναφέρει την επιλεγμένη άσκηση όταν αλλάζει η κατηγορία
+def reset_category():
+    st.session_state.selected_category = st.session_state["category_select"]
+    st.session_state.selected_exercise = None  # Καμία επιλεγμένη άσκηση
+    st.session_state.user_answer = ""  # Διαγραφή απάντησης
+    st.session_state.exercise_solution = None  # Διαγραφή Λύσης
+    st.session_state.ai_response = None # Διαγραφή ΑΙ
+
+# Συνάρτηση που διαγράφει μόνο την απάντηση όταν αλλάζει η άσκηση
+def reset_exercise():
+    if st.session_state.selected_exercise != st.session_state["exercise_select"]:
+        st.session_state.user_answer = ""  # Διαγραφή απάντησης
+    st.session_state.selected_exercise = st.session_state["exercise_select"]  # Ενημέρωση επιλεγμένης άσκησης
+    st.session_state.exercise_solution = None  # Διαγραφή Λύσης
+    st.session_state.ai_response = None # Διαγραφή ΑΙ
+
+
+# Αρχικοποίηση session_state αν δεν υπάρχουν
 if "selected_category" not in st.session_state:
-    st.session_state.selected_category = None
+    st.session_state.selected_category = categories[0]  # Προεπιλογή στην πρώτη κατηγορία
 if "selected_exercise" not in st.session_state:
-    st.session_state.selected_exercise = None
-if "show_solution" not in st.session_state:
-    st.session_state.show_solution = False  # 🔥 Απόκρυψη της λύσης στην αρχή
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []  # 🔥 Ιστορικό συνομιλίας chatbot
+    st.session_state.selected_exercise = None  # Δεν υπάρχει άσκηση αρχικά
+if "user_answer" not in st.session_state:
+    st.session_state.user_answer = ""
+if "exercise_solution" not in st.session_state:
+    st.session_state.exercise_solution = None
+if "ai_response" not in st.session_state:
+    st.session_state.ai_response = None
 
+# 🔥 Τίτλος σελίδας
 st.title("📡 Ασκήσεις Δικτύων")
-col1, col2 = st.columns([2, 1])
+# st.image("https://github.com/agtitis/NetworkExercises/raw/refs/heads/main/logo.png", use_container_width=True)
 
-with col1:
-    # 🔥 Επιλογή Κατηγορίας
-    categories = list(set(ex["Κατηγορία άσκησης"] for ex in exercises))
-    previous_category = st.session_state.selected_category
-    selected_category = st.selectbox("📂 Επιλέξτε Κατηγορία", categories,
-                                     index=categories.index(
-                                         st.session_state.selected_category) if st.session_state.selected_category else 0)
-
-    if selected_category != previous_category:
-        st.session_state.selected_category = selected_category
-        st.session_state.selected_exercise = None
-        st.session_state.show_solution = False
-
-    # 🔥 Φιλτράρισμα Ασκήσεων ανά κατηγορία
-    filtered_exercises = [ex for ex in exercises if ex["Κατηγορία άσκησης"] == selected_category]
-
-    # 🔥 Επιλογή Άσκησης
-    exercise_titles = [ex["Περιγραφή άσκησης"] for ex in filtered_exercises]
-
-    if st.session_state.selected_exercise not in exercise_titles:
-        st.session_state.selected_exercise = exercise_titles[0] if exercise_titles else None
-        st.session_state.show_solution = False
-
-    selected_exercise = st.selectbox("📜 Επιλέξτε Άσκηση", exercise_titles,
-                                     index=exercise_titles.index(
-                                         st.session_state.selected_exercise) if st.session_state.selected_exercise else 0)
-
-    if selected_exercise != st.session_state.selected_exercise:
-        st.session_state.selected_exercise = selected_exercise
-        st.session_state.show_solution = False
-
-    # 🔥 Random Επιλογή Άσκησης
-    if st.button("🎲 Τυχαία Άσκηση"):
-        random_exercise = random.choice(exercises)
-        st.session_state.selected_category = random_exercise["Κατηγορία άσκησης"]
-        st.session_state.selected_exercise = random_exercise["Περιγραφή άσκησης"]
-        st.session_state.show_solution = False
-        st.rerun()
-
-with col2:
+# 🎨 Sidebar για επιλογή κατηγορίας και άσκησης
+with st.sidebar:
     st.image("https://github.com/agtitis/NetworkExercises/raw/refs/heads/main/logo.png", use_container_width=True)
 
-# 🔥 Ανάκτηση Επιλεγμένης Άσκησης
-exercise = next((ex for ex in filtered_exercises if ex["Περιγραφή άσκησης"] == selected_exercise), None)
+    # 🔥 Επιλογή Κατηγορίας
+    st.selectbox(
+        "📂 Επιλέξτε Κατηγορία", categories,
+        index=categories.index(st.session_state.selected_category),
+        key="category_select", on_change=reset_category
+    )
 
-if exercise:
-    st.subheader("📌 Άσκηση")
-    st.markdown(f'<div class="styled-box"><b>{exercise["Κείμενο άσκησης"]}</b></div>', unsafe_allow_html=True)
+    # 🔥 Φιλτράρισμα Ασκήσεων ανά κατηγορία
+    filtered_exercises = [ex for ex in exercises if ex["Κατηγορία άσκησης"] == st.session_state.selected_category]
+    # 🔥 Επιλογή Άσκησης (αν υπάρχουν διαθέσιμες ασκήσεις)
+    if filtered_exercises:
+        exercise_titles = [ex["Περιγραφή άσκησης"] for ex in filtered_exercises]
 
-    user_answer = st.text_area("✍️ Γράψτε την απάντησή σας:", height=150)
+        # Επιλέγουμε την πρώτη άσκηση αν δεν υπάρχει ήδη επιλεγμένη
+        if st.session_state.selected_exercise not in exercise_titles:
+            st.session_state.selected_exercise = exercise_titles[0]
 
-    # 🔥 Εμφάνιση πίνακα αν υπάρχει
-    if "Πίνακας άσκησης" in exercise:
-        st.subheader("📊 Πίνακας Άσκησης")
-        table_data = exercise["Πίνακας άσκησης"]
-        # 🔥 Μετατροπή του λεξικού σε DataFrame για να κρατήσουμε τη σειρά των στηλών
-        df = pd.DataFrame.from_dict(table_data)
-        # 🔥 Ορισμός της σωστής σειράς στηλών
-        custom_order = ["Πεδίο"] + [col for col in df.columns if col != "Πεδίο"]
-        df = df[custom_order]  # Ταξινόμηση στη σωστή σειρά
-        # 🔥 Εμφάνιση του πίνακα με τη σωστή σειρά στηλών
-        #st.table(df)
-        edited_df = st.data_editor(df, num_rows="dynamic")  # Επιτρέπει επεξεργασία
+        st.selectbox(
+            "📜 Επιλέξτε Άσκηση", exercise_titles,
+            index=exercise_titles.index(st.session_state.selected_exercise),
+            key="exercise_select", on_change=reset_exercise
+        )
+        # Ανάκτηση επιλεγμένης άσκησης
+        selected_exercise = st.session_state.selected_exercise
+        # 🔥 Ανάκτηση Επιλεγμένης Άσκησης
+        exercise = next((ex for ex in filtered_exercises if ex["Περιγραφή άσκησης"] == selected_exercise), None)
+    else:
+        st.warning("❗ Δεν υπάρχουν ασκήσεις σε αυτή την κατηγορία.")
 
-    if not st.session_state.show_solution:
-        if st.button("🔍 Εμφάνιση Λύσης"):
-            st.session_state.show_solution = True
-            st.rerun()
-    if st.session_state.show_solution:
-        st.subheader("🛠 Λύση")
-        st.markdown(exercise["Λύση άσκησης"], unsafe_allow_html=True)
-        if "Πίνακας λύσης" in exercise:
-            st.subheader("📊 Πίνακας λύσης")
-            table_data = exercise["Πίνακας λύσης"]
+
+# 🎭 Δύο στήλες για εμφάνιση άσκησης και βοηθού AI
+col1, col2 = st.columns([2, 1])  # Αριστερά μεγαλύτερη στήλη, δεξιά μικρότερη
+with col1:  # 🔹 Αριστερή στήλη (Άσκηση & Λύση)
+    if exercise:
+        st.subheader("📌 Άσκηση")
+        st.markdown(f'<div class="styled-box"><b>{exercise["Κείμενο άσκησης"]}</b></div>', unsafe_allow_html=True)
+
+        # Πεδίο απάντησης που κρατάει το state
+        user_answer = st.text_area("✍️ Γράψτε την απάντησή σας:", value=st.session_state.user_answer,
+                                   height=150, key="user_answer")
+        # 🔥 Εμφάνιση πίνακα αν υπάρχει
+        if "Πίνακας άσκησης" in exercise:
+            st.subheader("📊 Πίνακας Άσκησης")
+            table_data = exercise["Πίνακας άσκησης"]
             # 🔥 Μετατροπή του λεξικού σε DataFrame για να κρατήσουμε τη σειρά των στηλών
             df = pd.DataFrame.from_dict(table_data)
-            # 🔥 Ορισμός της σωστής σειράς στηλών
-            custom_order = ["Πεδίο"] + [col for col in df.columns if col != "Πεδίο"]
-            df = df[custom_order]  # Ταξινόμηση στη σωστή σειρά
+            # 🔥 Ορισμός της σωστής σειράς των στηλών
+            column_order = ["Πεδίο"] + sorted(
+                [col for col in df.columns if col != "Πεδίο"],
+                key=lambda x: int(x.split("ο")[0]) if x.split("ο")[0].isdigit() else float("inf")
+            )
+            df = df[column_order]  # Εφαρμογή της σωστής σειράς
             # 🔥 Εμφάνιση του πίνακα με τη σωστή σειρά στηλών
-            st.table(df)
+            edited_df = st.data_editor(df)  # Επιτρέπει επεξεργασία
 
+            # 🔥 Ορισμός της σωστής σειράς στηλών
+            #custom_order = ["Πεδίο"] + [col for col in df.columns if col != "Πεδίο"]
+            #df = df[custom_order]  # Ταξινόμηση στη σωστή σειρά
+            # 🔥 Εμφάνιση του πίνακα με τη σωστή σειρά στηλών
+            #edited_df = st.data_editor(df, num_rows="dynamic")  # Επιτρέπει επεξεργασία
 
+        if st.button("🔍 Εμφάνιση Λύσης"):
+            st.session_state.exercise_solution = exercise["Λύση άσκησης"]  # Αποθήκευση της λύσης
+            st.session_state.ai_response = None  # Διαγραφή απάντησης AI για αποφυγή σύγχυσης
+        # Εμφάνιση λύσης αν έχει αποθηκευτεί
+        if st.session_state.exercise_solution:
+            st.subheader("🛠 Λύση")
+            st.markdown(st.session_state.exercise_solution, unsafe_allow_html=True)
+            if "Πίνακας λύσης" in exercise:
+                st.subheader("📊 Πίνακας λύσης")
+                table_data = exercise["Πίνακας λύσης"]
+                # 🔥 Μετατροπή του λεξικού σε DataFrame για να κρατήσουμε τη σειρά των στηλών
+                df = pd.DataFrame.from_dict(table_data)
+                # 🔥 Ορισμός της σωστής σειράς των στηλών
+                column_order = ["Πεδίο"] + sorted(
+                    [col for col in df.columns if col != "Πεδίο"],
+                    key=lambda x: int(x.split("ο")[0]) if x.split("ο")[0].isdigit() else float("inf")
+                )
+                df = df[column_order]  # Εφαρμογή της σωστής σειράς
+                # 🔥 Εμφάνιση του πίνακα με τη σωστή σειρά στηλών
+                st.table(df)
+                #df = pd.DataFrame.from_dict(table_data)
+                #custom_order = ["Πεδίο"] + [col for col in df.columns if col != "Πεδίο"]
+                #df = df[custom_order]
+                #st.table(df)
 
+with col2:  # 🤖 Δεξιά στήλη (Βοηθός AI)
     # 🔥 Chatbot Αξιολόγησης Απάντησης
     st.subheader("🤖 Βοηθός AI")
-    st.session_state.chat_history = []
+    st.markdown(" :smile: :red[Όχι 100% αξιόπιστος]")
     if st.button("🧠 Αξιολόγηση Απάντησης"):
         # 🔥 Μετατροπή του Πίνακα Λύσης σε Κείμενο (αν υπάρχει)
         if "Πίνακας λύσης" in exercise:
@@ -159,48 +197,25 @@ if exercise:
             student_table_str = edited_df.to_string(index=False)
         else:
             student_table_str = "Ο μαθητής δεν συμπλήρωσε τον πίνακα."
-
         prompt = f"""
-        Είσαι ένας εκπαιδευτικός πληροφορικής που ελέγχει απαντήσεις μαθητών. 
+        Ρόλος: Είσαι ένας εκπαιδευτικός πληροφορικής που διδάσκει το μάθημα Δίκτυα Υπολογιστών
+        σε μαθητές Επαγγελματικού Λυκείου στην Ελλάδα.. 
         Η άσκηση είναι: "{exercise['Κείμενο άσκησης']}".
         **Η σωστή απάντηση είναι:** "{exercise['Λύση άσκησης']}".
         **Πίνακας Λύσης:** {solution_table_str}
         **Ο μαθητής έγραψε:** "{user_answer}".
         **Απάντηση μαθητή στον πίνακα:** {student_table_str} 
-        Δώσε ανατροφοδότηση στον μαθητή για το αν είναι σωστή η απάντηση ή τι πρέπει να διορθώσει.
+        Έργο: Δώσε ανατροφοδότηση στον μαθητή για το αν είναι σωστή η απάντηση ή τι πρέπει να διορθώσει
+        με βάση το βιβλίο Δίκτυα Υπολογιστών Γ' ΕΠΑΛ.
+        Προδιαγραφές: Να είναι υποστηρικτικός και δώσεις κάποια στοιχεία για να φτάσει ο μαθητής στη λύση μόνος του.
         """
         model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content(prompt)
-        bot_reply = response.text
-        st.session_state.chat_history.append(f"🤖 Chatbot: {bot_reply}")
+        st.session_state.ai_response = response.text  # Αποθήκευση απάντησης AI
+        st.session_state.exercise_solution = None  # Διαγραφή λύσης αν εμφανιστεί το AI response
 
-    # 🔥 Εμφάνιση συνομιλίας
-    for msg in st.session_state.chat_history:
-        st.write(msg)
+    # Εμφάνιση απάντησης AI αν έχει αποθηκευτεί
+    if st.session_state.ai_response:
+        st.subheader("🤖 Απάντηση Βοηθού AI")
+        st.write(st.session_state.ai_response)
 
-
-    # 🔥 Πεδίο ερώτησης προς το Chatbot
-    user_question = st.text_input("💬 Ρώτησε το Chatbot:")
-    if st.button("✉️ Αποστολή Ερώτησης"):
-        if user_question.strip() != "":
-            # 🔥 Δημιουργία prompt για το Gemini AI
-            prompt = f"""
-            Είσαι ένας βοηθός πληροφορικής που απαντά σε ερωτήσεις μαθητών.
-            Ο μαθητής ρώτησε: "{user_question}".
-            Δώσε μια σαφή και επεξηγηματική απάντηση.
-            """
-
-            # 🔥 Αποστολή στο Gemini
-            model = genai.GenerativeModel('gemini-2.0-flash')
-            response = model.generate_content(prompt)
-            bot_reply = response.text
-
-            # 🔥 Προσθήκη της ερώτησης και της απάντησης στο ιστορικό
-            st.session_state.chat_history.append(f"👤 Εσύ: {user_question}")
-            st.session_state.chat_history.append(f"🤖 Chatbot: {bot_reply}")
-
-            # 🔥 Επαναφόρτωση της σελίδας για να εμφανιστεί η απάντηση χωρίς να χαθεί το ιστορικό
-            st.rerun()
-
-else:
-    st.warning("❗ Δεν υπάρχουν ασκήσεις σε αυτή την κατηγορία.")
