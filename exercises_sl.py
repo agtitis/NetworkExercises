@@ -36,6 +36,9 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+# 🔥 Αρχικοποίηση GEMINI API
+gemini_api_key = st.secrets["GEMINI_API_KEY"]
+genai.configure(api_key=gemini_api_key)
 
 # 🔥 Φόρτωση των ασκήσεων
 @st.cache_data
@@ -52,10 +55,6 @@ if exercises is None:
     st.stop()
 
 categories = list(set(ex["Κατηγορία άσκησης"] for ex in exercises))
-
-# 🔥 Αρχικοποίηση GEMINI API
-gemini_api_key = st.secrets["GEMINI_API_KEY"]
-genai.configure(api_key=gemini_api_key)
 
 
 # Συνάρτηση που διαγράφει την απάντηση και επαναφέρει την επιλεγμένη άσκηση όταν αλλάζει η κατηγορία
@@ -89,7 +88,6 @@ if "ai_response" not in st.session_state:
 
 # 🔥 Τίτλος σελίδας
 st.title("📡 Ασκήσεις Δικτύων")
-# st.image("https://github.com/agtitis/NetworkExercises/raw/refs/heads/main/logo.png", use_container_width=True)
 
 # 🎨 Sidebar για επιλογή κατηγορίας και άσκησης
 with st.sidebar:
@@ -142,19 +140,10 @@ with col1:  # 🔹 Αριστερή στήλη (Άσκηση & Λύση)
             # 🔥 Μετατροπή του λεξικού σε DataFrame για να κρατήσουμε τη σειρά των στηλών
             df = pd.DataFrame.from_dict(table_data)
             # 🔥 Ορισμός της σωστής σειράς των στηλών
-            column_order = ["Πεδίο"] + sorted(
-                [col for col in df.columns if col != "Πεδίο"],
-                key=lambda x: int(x.split("ο")[0]) if x.split("ο")[0].isdigit() else float("inf")
-            )
+            column_order = exercise["Column_Order"]
             df = df[column_order]  # Εφαρμογή της σωστής σειράς
             # 🔥 Εμφάνιση του πίνακα με τη σωστή σειρά στηλών
             edited_df = st.data_editor(df)  # Επιτρέπει επεξεργασία
-
-            # 🔥 Ορισμός της σωστής σειράς στηλών
-            #custom_order = ["Πεδίο"] + [col for col in df.columns if col != "Πεδίο"]
-            #df = df[custom_order]  # Ταξινόμηση στη σωστή σειρά
-            # 🔥 Εμφάνιση του πίνακα με τη σωστή σειρά στηλών
-            #edited_df = st.data_editor(df, num_rows="dynamic")  # Επιτρέπει επεξεργασία
 
         if st.button("🔍 Εμφάνιση Λύσης"):
             st.session_state.exercise_solution = exercise["Λύση άσκησης"]  # Αποθήκευση της λύσης
@@ -169,17 +158,10 @@ with col1:  # 🔹 Αριστερή στήλη (Άσκηση & Λύση)
                 # 🔥 Μετατροπή του λεξικού σε DataFrame για να κρατήσουμε τη σειρά των στηλών
                 df = pd.DataFrame.from_dict(table_data)
                 # 🔥 Ορισμός της σωστής σειράς των στηλών
-                column_order = ["Πεδίο"] + sorted(
-                    [col for col in df.columns if col != "Πεδίο"],
-                    key=lambda x: int(x.split("ο")[0]) if x.split("ο")[0].isdigit() else float("inf")
-                )
+                column_order = exercise["Column_Order"]
                 df = df[column_order]  # Εφαρμογή της σωστής σειράς
                 # 🔥 Εμφάνιση του πίνακα με τη σωστή σειρά στηλών
                 st.table(df)
-                #df = pd.DataFrame.from_dict(table_data)
-                #custom_order = ["Πεδίο"] + [col for col in df.columns if col != "Πεδίο"]
-                #df = df[custom_order]
-                #st.table(df)
 
 with col2:  # 🤖 Δεξιά στήλη (Βοηθός AI)
     # 🔥 Chatbot Αξιολόγησης Απάντησης
@@ -189,6 +171,8 @@ with col2:  # 🤖 Δεξιά στήλη (Βοηθός AI)
         # 🔥 Μετατροπή του Πίνακα Λύσης σε Κείμενο (αν υπάρχει)
         if "Πίνακας λύσης" in exercise:
             solution_table_df = pd.DataFrame.from_dict(exercise["Πίνακας λύσης"])
+            column_order = exercise["Column_Order"]
+            solution_table_df = solution_table_df[column_order]
             solution_table_str = solution_table_df.to_string(index=False)  # Μετατροπή σε μορφή string
         else:
             solution_table_str = "Δεν υπάρχει διαθέσιμος πίνακας λύσης."
