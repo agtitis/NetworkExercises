@@ -194,7 +194,9 @@ with col2:  # 🤖 Δεξιά στήλη (Βοηθός AI)
         με βάση το βιβλίο Δίκτυα Υπολογιστών Γ' ΕΠΑΛ.
         Προδιαγραφές: Να είσαι υποστηρικτικός και να δώσεις κάποια στοιχεία για να φτάσει ο μαθητής στη λύση μόνος του.
         """
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        # model = genai.GenerativeModel('gemini-2.0-flash')
+        # Νέο:
+        model = genai.GenerativeModel('gemini-3.6-flash')
         response = model.generate_content(prompt)
         st.session_state.ai_response = response.text  # Αποθήκευση απάντησης AI
         st.session_state.exercise_solution = None  # Διαγραφή λύσης αν εμφανιστεί το AI response
