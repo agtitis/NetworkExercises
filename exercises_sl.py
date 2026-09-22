@@ -196,7 +196,7 @@ with col2:  # 🤖 Δεξιά στήλη (Βοηθός AI)
         """
         # model = genai.GenerativeModel('gemini-2.0-flash')
         # Νέο:
-        model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        model = genai.GenerativeModel('gemini-3.5-flash-lite')
         response = model.generate_content(prompt)
         st.session_state.ai_response = response.text  # Αποθήκευση απάντησης AI
         st.session_state.exercise_solution = None  # Διαγραφή λύσης αν εμφανιστεί το AI response
